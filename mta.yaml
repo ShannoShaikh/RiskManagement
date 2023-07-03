@@ -1,0 +1,77 @@
+_schema-version: "3.1"
+ID: risk-management
+description: Template for the Learning Journey Building side-by-side extensions on
+  SAP BTP
+version: 2.0.0
+modules:
+- name: risk-management-srv
+  type: nodejs
+  path: gen/srv
+  provides:
+  - name: srv-api
+    properties:
+      srv-url: ${default-url}
+  parameters:
+    buildpack: nodejs_buildpack
+  build-parameters:
+    builder: npm
+- name: risk-management-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: risk-management-destination-service
+    parameters:
+      content-target: true
+  - name: risk-management_html_repo_host
+    parameters:
+      service-key:
+        name: risk-management_html_repo_host-key
+  - name: uaa_risk-management
+    parameters:
+      service-key:
+        name: uaa_risk-management-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: risks_manage_risk_management_html_repo_host
+          ServiceInstanceName: risk-management-html5-app-host-service
+          ServiceKeyName: risk-management_html_repo_host-key
+          sap.cloud.service: risks_manage
+        - Authentication: OAuth2UserTokenExchange
+          Name: risks_manage_uaa_risk_management
+          ServiceInstanceName: risk-management-xsuaa-service
+          ServiceKeyName: uaa_risk-management-key
+          sap.cloud.service: risks_manage
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+resources:
+- name: risk-management-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      version: 1.0.0
+    service: destination
+    service-name: risk-management-destination-service
+    service-plan: lite
+- name: risk-management_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: risk-management-html5-app-host-service
+    service-plan: app-host
+- name: uaa_risk-management
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: risk-management-xsuaa-service
+    service-plan: application
+parameters:
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+  - builder: custom
+    commands:
+    - npx cds build --production
